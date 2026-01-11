@@ -269,7 +269,12 @@ interface AdminUser {
     createdAt: string;
 }
 
-type UserType = { _id: string; email: string; name:string ; role: string; isActive:boolean; profileImage:string;} | null;
+type UserType = { _id: string; email: string; name:string ; role: string; isActive:boolean; profileImage:string; 
+    inventoryPermissions: {
+    accessType: 'none' | 'view' | 'manage'; 
+    accessibleBranches: 'Cairo' | 'Mansoura' | 'Both'; 
+    };
+    branch: string; } | null;
 
 
 export type { 

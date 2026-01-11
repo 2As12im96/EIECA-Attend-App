@@ -30,6 +30,12 @@ import AdminList from "./components/AdminDashboard/Dashboard/Admins/AdminList";
 import AdminDetails from "./components/AdminDashboard/Dashboard/Admins/AdminDetails";
 import GenerateToken from "./components/Authentication/Login/GenerateToken";
 import SimpleResetPassword from "./components/Authentication/Login/SimpleResetPassword";
+import InventoryList from "./components/Inventory/InventoryList";
+import AddItem from "./components/Inventory/AddItem";
+import AddLocation from "./components/Inventory/AddLocation";
+import CategoryManager from "./components/Inventory/CategoryManager";
+import EditItem from "./components/Inventory/EditItemInventory";
+import BranchInventory from "./components/Inventory/BranchInventory";
 
 
 const App: React.FC = () => {
@@ -93,6 +99,15 @@ const App: React.FC = () => {
             {/* Setting Admin */}
             <Route path="settings" element={<EmployeeSetting userRole={userRole}/>}></Route>
 
+            {/* Inventory System Routes */}
+            <Route path="inventory" element={<InventoryList />} />
+            <Route path="inventory/add" element={<AddItem />} />
+            <Route path="inventory/location" element={<AddLocation />}/>
+            <Route path="inventory/categories" element={<CategoryManager />}/>
+            <Route path="inventory/edit/:id" element={<EditItem />} />
+            {/* <Route path="inventory/transfer" element={<StockTransfer />} />
+            <Route path="inventory/history" element={<InventoryLog />} /> */}
+
         </Route>
 
         {/* Employees Dashboard */}
@@ -114,6 +129,16 @@ const App: React.FC = () => {
             <Route path="attendence-report/:year/:month" element={<EmployeeReportViewer />}></Route>
 
             <Route path="setting" element={<EmployeeSetting userRole={userRole}/>}></Route>
+
+            {/* Inventory System Routes */}
+            <Route path="inventory" element={<BranchInventory />} />
+            <Route path="inventory/add" element={<AddItem />} />
+            <Route path="inventory/location" element={<AddLocation />}/>
+            <Route path="inventory/categories" element={<CategoryManager />}/>
+            <Route path="inventory/edit/:id" element={<EditItem />} />
+
+            {/* <Route path="inventory/transfer" element={<StockTransfer />} />
+            <Route path="inventory/history" element={<InventoryLog />} /> */}
         </Route>
 
       </Routes>

@@ -21,28 +21,26 @@ function Summery() {
     const [Loading , setLoading] = useState<boolean>(false);
 
     useEffect(()=>{
-        const fetchSummary = async()=>{
+        const fetchSummary = async () => {
             setLoading(true);
-            try{
-                const res:any = await axios.get(`${Url}/dashboard/summary` , {
+            setError(false);
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get(`${Url}/dashboard/summary`, {
                     headers: {
-                        "Authorization": `Bearer ${localStorage.getItem('token')}`
+                        "Authorization": `Bearer ${token}`
                     }
-                })
-                setSummary(res.data)
-                setLoading(false);
-            }
-            catch(err:any){
-                if(err.res.data.error){
-                    setError(err)
+                });
+                if (res.data) {
+                    setSummary(res.data);
                 }
+            } catch (err: any) {
+                console.error("Summary Fetch Error:", err);
+                setError(true);
+            } finally {
                 setLoading(false);
-                console.log(err.message);
             }
-            finally{
-                setLoading(false);
-            }
-        }
+        };
         fetchSummary()
     },[]);
     return (
