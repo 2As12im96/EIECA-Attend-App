@@ -5,7 +5,6 @@ import { Url } from "../../../../utils/Url";
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faUserShield, faMoneyBillWave, faMapMarkerAlt, faLock } from "@fortawesome/free-solid-svg-icons";
-import type { AdminUser } from "../../../Types/type";
 
 const AdminDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>(); 
