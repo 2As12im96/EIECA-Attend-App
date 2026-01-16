@@ -1,18 +1,29 @@
 import axios from 'axios';
 import { createContext, useState, useContext, type ReactNode, useEffect } from 'react';
-import type { AuthContextType, UserType } from '../Types/type';
 import { Url } from '../../utils/Url';
 
-const UserContext = createContext<AuthContextType>({ 
-    user: null, 
-    login: () => {}, 
-    logout: () => {}, 
-    loading: true 
-});
+interface AuthContextType {
+    user: any;
+    login: (userData: any) => void;
+    logout: () => void;
+    loading: boolean;
+}
 
-const AuthContext = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<UserType>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(true);
+
+    const login = (userData: any) => {
+        setUser(userData);
+    };
+
+    const logout = () => {
+        localStorage.removeItem("token");
+        setUser(null);
+        window.location.href = '/login';
+    };
 
     useEffect(() => {
         const verifyUser = async () => {
@@ -27,44 +38,34 @@ const AuthContext = ({ children }: { children: ReactNode }) => {
                         const basicUser = response.data.user;
 
                         if (basicUser.role === 'employee') {
-                            try {
-                                const empRes = await axios.get(`${Url}/employee/my-profile`, {
-                                    headers: { Authorization: `Bearer ${token}` }
-                                });
+                            const empRes = await axios.get(`${Url}/employee/my-profile`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            
+                            if (empRes.data.success) {
+                                const empData = empRes.data.employee;
                                 
-                                if (empRes.data.success) {
-                                    const empData = empRes.data.employee;
-                                    const inventoryPerms = empData.inventoryPermissions?.accessType 
-                                        ? empData.inventoryPermissions 
-                                        : {
-                                            accessType: empData.inventoryPermissions?.canManage ? 'manage' : 
-                                                       (empData.inventoryPermissions?.canView ? 'view' : 'none'),
-                                            accessibleBranches: empData.inventoryPermissions?.accessibleBranches || 'Cairo'
-                                          };
+                                const branchMap: Record<string, string> = {
+                                    "695739d923381ec08a3e36f4": "مخزن القاهرة",
+                                    "69573a0f23381ec08a3e3703": "مخزن المنصورة"
+                                };
 
-                                    setUser({
-                                        ...basicUser,
-                                        branch: empData.branch,
-                                        inventoryPermissions: inventoryPerms
-                                    });
-                                } else {
-                                    setUser(basicUser);
-                                }
-                            } catch (empErr) {
-                                console.error("فشل في جلب بيانات الموظف الإضافية:", empErr);
-                                setUser(basicUser);
+                                setUser({
+                                    ...basicUser,
+                                    locationName: branchMap[empData.branch] || empData.branch,
+                                    designation: empData.designation,
+                                    // إضافة الصلاحيات لضمان عمل الـ Sidebar
+                                    inventoryPermissions: empData.inventoryPermissions 
+                                });
                             }
                         } else {
-                            // في حالة الـ Admin
-                            setUser(basicUser);
+                            setUser(basicUser); 
                         }
                     }
-                } else {
-                    setUser(null);
                 }
             } catch (error) {
-                console.error("خطأ في التحقق:", error);
-                setUser(null);
+                console.error("Auth Verification Error:", error);
+                localStorage.removeItem("token");
             } finally {
                 setLoading(false);
             }
@@ -72,21 +73,15 @@ const AuthContext = ({ children }: { children: ReactNode }) => {
         verifyUser();
     }, []);
 
-    const login = (userData: UserType) => {
-        setUser(userData);
-    };
-
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem("token");
-    };
-
     return (
-        <UserContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, loading }}>
             {children}
-        </UserContext.Provider>
+        </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => useContext(UserContext);
-export default AuthContext;
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) throw new Error("useAuth must be used within an AuthProvider");
+    return context;
+};

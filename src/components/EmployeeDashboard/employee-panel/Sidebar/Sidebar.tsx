@@ -1,7 +1,7 @@
 import { faCalendarDays, faGaugeHigh, faGear, faMoneyBillWave, faTimes, faUser, faWarehouse } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { NavLink } from "react-router-dom"
-import { useAuth } from "../../../Context/Context"
+import { useAuth } from "../../../Context/Context";
 
 interface AdminSideBarProps {
     isOpen: boolean;
@@ -22,23 +22,15 @@ function Sidebar({ isOpen, toggleSidebar }: AdminSideBarProps) {
         lg:translate-x-0 
     `;
 
-    // ترجمة الفروع بناءً على المسميات الموجودة في الـ Type الخاص بك
     const branchTranslation: Record<string, string> = {
         'Cairo': 'القاهرة',
         'Mansoura': 'المنصورة',
         'Both': 'كافة الفروع'
     };
 
-
-    const canAccessInventory = 
-    user?.inventoryPermissions && 
-    user.inventoryPermissions.accessType !== 'none' && 
-    user.inventoryPermissions.accessType !== undefined;
-
-
-    // التعديل هنا: الوصول للبيانات من داخل inventoryPermissions كما حددها الـ Type
-    // const canAccessInventory = user?.inventoryPermissions && user.inventoryPermissions.accessType !== 'none';
-    
+    // تبسيط الشرط لضمان الظهور إذا كان هناك أي نوع صلاحية
+    const canAccessInventory = user?.inventoryPermissions && 
+                               user.inventoryPermissions.accessType !== 'none';
 
     return (
         <div className={sidebarClasses}>
@@ -70,7 +62,6 @@ function Sidebar({ isOpen, toggleSidebar }: AdminSideBarProps) {
                         <li><FontAwesomeIcon icon={faMoneyBillWave} className="ml-2" /><span>المرتبات</span></li>
                     </NavLink>
 
-                    {/* التعديل هنا ليتوافق مع الـ Type الخاص بك */}
                     {canAccessInventory && (
                         <NavLink 
                             to='/employee-dashboard/inventory' 
@@ -98,4 +89,4 @@ function Sidebar({ isOpen, toggleSidebar }: AdminSideBarProps) {
     )
 }
 
-export default Sidebar
+export default Sidebar;

@@ -8,7 +8,7 @@ import { faArrowLeft, faUserShield, faMoneyBillWave, faMapMarkerAlt, faLock } fr
 
 const AdminDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>(); 
-    const [admin, setAdmin] = useState<any | null>(null); // استخدمنا any مؤقتاً لتشمل الحقول الجديدة
+    const [admin, setAdmin] = useState<any | null>(null); 
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {

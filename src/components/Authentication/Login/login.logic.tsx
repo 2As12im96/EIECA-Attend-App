@@ -1,11 +1,9 @@
-import { useState, useCallback, type FormEvent} from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import axios, { AxiosError } from "axios";
 import { useAuth } from "../../Context/Context";
 import { useNavigate } from "react-router-dom";
 import type { LoginResponse, UseLoginLogicResult } from "../../Types/type";
 import { Url } from "../../../utils/Url";
-
-
 
 function useLoginLogic(): UseLoginLogicResult {
     const [email, setEmail] = useState<string>('');
@@ -14,29 +12,34 @@ function useLoginLogic(): UseLoginLogicResult {
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [eye, setEye] = useState<boolean>(false);
-    const { login }:any = useAuth();
+    
+    // سحب دالة login التي أضفناها في الـ Context
+    const { login } = useAuth(); 
     const navigate = useNavigate();
 
-
     const handleSubmit = useCallback(async (e: FormEvent) => {
+        e.preventDefault();
         setLoading(true);
         setError(''); 
         setRes('');   
-        e.preventDefault();
+
         try {
             const response = await axios.post<LoginResponse>(`${Url}/login`, {
                 email,
                 password
             });
-            setRes(response.data.message);
-            if(response.data.success){
+
+            if (response.data.success) {
+                setRes(response.data.message);
+                localStorage.setItem("token", response.data.token);
+                
+                // تحديث حالة المستخدم في الـ Context فوراً
                 login(response.data.user);
-                localStorage.setItem("token" , response.data.token);
-                // localStorage.setItem("user", JSON.stringify(response.data.user));
-                if(response.data.user.role === 'admin'){
+
+                // التوجيه بناءً على الصلاحيات
+                if (response.data.user.role === 'admin') {
                     navigate('/admin-dashboard');
-                }
-                else{
+                } else {
                     navigate('/employee-dashboard');
                 }
             }
@@ -44,30 +47,18 @@ function useLoginLogic(): UseLoginLogicResult {
             console.error("Login Error:", err);
             if (axios.isAxiosError(err)) {
                 const axiosError = err as AxiosError<{ error?: string, message?: string }>;
-                const errorMessage = axiosError.response?.data?.message || axiosError.response?.data?.error || 'فشل تسجيل الدخول';
-                setError(errorMessage);
+                setError(axiosError.response?.data?.message || 'فشل تسجيل الدخول');
             } else {
                 setError('حدث خطأ غير متوقع');
             }
         } finally {
             setLoading(false);
         }
-    }, [email, password]);
+    }, [email, password, login, navigate]);
 
-    const toggleEye = useCallback(() => {
-        setEye(prevEye => !prevEye);
-    }, []);
+    const toggleEye = useCallback(() => setEye(prev => !prev), []);
 
-    return {
-        setEmail,
-        setPassword,
-        res,
-        loading,
-        error,
-        eye,
-        handleSubmit,
-        toggleEye
-    };
+    return { setEmail, setPassword, res, loading, error, eye, handleSubmit, toggleEye };
 }
 
 export default useLoginLogic;

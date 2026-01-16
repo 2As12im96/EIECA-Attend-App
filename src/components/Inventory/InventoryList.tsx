@@ -13,8 +13,10 @@ import {
     faFilter,
     faWarehouse,
     faChartPie,
-    faTimes
+    faTimes ,
+    faPrint, faFilePdf, faFileExcel, faChevronDown 
 } from '@fortawesome/free-solid-svg-icons';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../Context/Context';
 import Swal from 'sweetalert2';
@@ -211,6 +213,13 @@ const InventoryList = () => {
         }
     ];
 
+    const navigate = useNavigate();
+    const [showPrintOptions, setShowPrintOptions] = useState(false);
+
+    const handlePrint = (type: 'pdf' | 'excel') => {
+        navigate(`/admin-dashboard/inventory/report-print?type=${type}&location=${filterLocation}`);
+    };
+
     return (
         <div className="p-6 bg-[#f8fafc] min-h-screen" >
             {/* Header القسم العلوي */}
@@ -236,6 +245,31 @@ const InventoryList = () => {
                             <Link to="add" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 transition">
                                 <FontAwesomeIcon icon={faPlus} /> صنف جديد
                             </Link>
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setShowPrintOptions(!showPrintOptions)}
+                                    className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-lg transition"
+                                >
+                                    <FontAwesomeIcon icon={faPrint} /> طباعة التقرير <FontAwesomeIcon icon={faChevronDown} className="text-[10px]" />
+                                </button>
+                
+                                {showPrintOptions && (
+                                    <div className="absolute top-full mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                                        <button 
+                                            onClick={() => handlePrint('pdf')}
+                                            className="w-full text-right px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700"
+                                        >
+                                            <FontAwesomeIcon icon={faFilePdf} className="text-red-500" /> تصدير PDF
+                                        </button>
+                                        <button 
+                                            onClick={() => handlePrint('excel')}
+                                            className="w-full text-right px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700 border-t border-gray-50"
+                                        >
+                                            <FontAwesomeIcon icon={faFileExcel} className="text-green-600" /> تصدير Excel
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>

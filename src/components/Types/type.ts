@@ -269,13 +269,21 @@ interface AdminUser {
     createdAt: string;
 }
 
-type UserType = { _id: string; email: string; name:string ; role: string; isActive:boolean; profileImage:string; 
+type UserType = { 
+    _id: string; 
+    email: string; 
+    name: string; 
+    role: string; 
+    isActive: boolean; 
+    profileImage: string; 
     inventoryPermissions: {
-    accessType: 'none' | 'view' | 'manage'; 
-    accessibleBranches: 'Cairo' | 'Mansoura' | 'Both'; 
+        accessType: 'none' | 'view' | 'manage'; 
+        accessibleBranches: string | string[]; 
     };
-    branch: string; } | null;
-
+    branch?: any;
+    location?: string;
+    locationName?: string;
+} | null;
 
 export type { 
     DepartmentButtonsProps, 
