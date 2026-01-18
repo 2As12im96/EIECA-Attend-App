@@ -38,6 +38,7 @@ import EditItem from "./components/Inventory/EditItemInventory";
 import BranchInventory from "./components/Inventory/BranchInventory";
 import InventoryAlerts from "./components/Inventory/InventoryAlerts";
 import InventoryReport from "./components/Inventory/InventoryReport";
+import StockTransfer from "./components/Inventory/Transfers";
 
 
 const App: React.FC = () => {
@@ -109,6 +110,7 @@ const App: React.FC = () => {
             <Route path="inventory/categories" element={<CategoryManager />}/>
             <Route path="inventory/edit/:id" element={<EditItem />} />
             <Route path="inventory-alerts" element={<InventoryAlerts />} />
+            {/* <Route path="inventory/transfer" element={<StockTransfer />} /> */}
 
             {/* <Route path="inventory/transfer" element={<StockTransfer />} />
             <Route path="inventory/history" element={<InventoryLog />} /> */}
@@ -143,6 +145,7 @@ const App: React.FC = () => {
             <Route path="inventory/categories" element={<CategoryManager />}/>
             <Route path="inventory/edit/:id" element={<EditItem />} />
             <Route path="inventory-alerts" element={<InventoryAlerts />} />
+            <Route path="inventory/transfer" element={<StockTransfer />} />
 
             {/* <Route path="inventory/transfer" element={<StockTransfer />} />
             <Route path="inventory/history" element={<InventoryLog />} /> */}

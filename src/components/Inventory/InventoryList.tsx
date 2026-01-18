@@ -14,7 +14,8 @@ import {
     faWarehouse,
     faChartPie,
     faTimes ,
-    faPrint, faFilePdf, faFileExcel, faChevronDown 
+    faPrint, faFilePdf, faFileExcel, faChevronDown, 
+    // faExchangeAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
@@ -239,12 +240,20 @@ const InventoryList = () => {
                             <Link to="categories" className="bg-white border text-gray-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm">
                                 <FontAwesomeIcon icon={faChartPie} className="text-orange-500" /> الأقسام
                             </Link>
+                            
+                            {/* زر تحويل البضاعة الجديد */}
+                            {/* <Link to="transfer" className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-700 shadow-lg shadow-purple-100 transition">
+                                <FontAwesomeIcon icon={faExchangeAlt} /> تحويل مخزني
+                            </Link> */}
+
                             <Link to="location" className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-red-700 shadow-lg shadow-blue-100 transition">
                                 <FontAwesomeIcon icon={faPlus} /> فرع مخزن جديد
                             </Link>
+
                             <Link to="add" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 transition">
                                 <FontAwesomeIcon icon={faPlus} /> صنف جديد
                             </Link>
+
                             <div className="relative">
                                 <button 
                                     onClick={() => setShowPrintOptions(!showPrintOptions)}
@@ -252,7 +261,7 @@ const InventoryList = () => {
                                 >
                                     <FontAwesomeIcon icon={faPrint} /> طباعة التقرير <FontAwesomeIcon icon={faChevronDown} className="text-[10px]" />
                                 </button>
-                
+
                                 {showPrintOptions && (
                                     <div className="absolute top-full mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
                                         <button 

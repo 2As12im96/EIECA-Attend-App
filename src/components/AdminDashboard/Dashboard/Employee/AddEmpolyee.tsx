@@ -25,7 +25,6 @@ function AddEmpolyee() {
 
     useEffect(() => {
         const fetchData = async () => {
-            // جلب الأقسام فقط للاستخدام في خانة "القسم"
             const departments = await fetchEmployees();
             setDepartment(departments);
         };
@@ -45,28 +44,56 @@ function AddEmpolyee() {
 
     const handleSubmit = async (e: any) => {
         e.preventDefault();
-        const formDataObj = new FormData();
-        Object.keys(formData).forEach((key) => {
-            if (typeof formData[key] === 'object' && key !== 'profileImage' && formData[key] !== null) {
-                formDataObj.append(key, JSON.stringify(formData[key]));
-            } else {
-                formDataObj.append(key, formData[key]);
-            }
-        });
-
         setLoading(true);
+        setError(null);
+
         try {
+            const formDataObj = new FormData();
+
+            // --- منطق تحويل الاختيارات العربية إلى قيم Boolean صحيحة للموديل ---
+            // نفحص الاختيار المختار في الـ select ونحدد الـ true والـ false
+            const isViewOnly = formData.inventoryAccessType === 'view';
+            const isManage = formData.inventoryAccessType === 'manage';
+
+            const inventoryPermissions = {
+                canView: isViewOnly || isManage, // True لو اختار مشاهدة أو إدارة
+                canManage: isManage,             // True فقط لو اختار إدارة كاملة
+                accessibleBranches: formData.inventoryScope || 'Cairo' 
+            };
+
+            // إضافة البيانات الأساسية لـ FormData مع استبعاد حقول الواجهة المؤقتة
+            Object.keys(formData).forEach((key) => {
+                if (key === 'inventoryAccessType' || key === 'inventoryScope') {
+                    // نتخطى هذه الحقول لأننا سنضعها داخل الكائن الموحد بالأسفل
+                    return;
+                }
+
+                if (key === 'profileImage') {
+                    if (formData[key]) {
+                        formDataObj.append(key, formData[key]);
+                    }
+                } else {
+                    formDataObj.append(key, formData[key]);
+                }
+            });
+
+            // إضافة كائن الصلاحيات الموحد (inventoryPermissions) كـ String
+            // هذا هو الحقل الذي يبحث عنه موديل Employee في الباك اند
+            formDataObj.append('inventoryPermissions', JSON.stringify(inventoryPermissions));
+
             const res = await axios.post(`${Url}/employee/add`, formDataObj, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            
+
             if (res.data.success) {
+                // alert("تمت إضافة الموظف بنجاح وتفعيل الصلاحيات!");
                 navigate('/admin-dashboard/employees');
             }
         } catch (err: any) {
+            console.error("Error during submission:", err);
             setError('خطأ في الإضافة: ' + (err.response?.data?.error || err.message));
         } finally {
             setLoading(false);
@@ -101,7 +128,7 @@ function AddEmpolyee() {
                             <input type="email" name="email" placeholder="example@company.com" id='Email' className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" onChange={handleChange} required/>
                         </div>
 
-                        {/* القسم - هنا نستخدم مصفوفة الأقسام من السيرفر */}
+                        {/* القسم */}
                         <div className="flex flex-col gap-1">
                             <label htmlFor="Department" className='text-sm font-semibold text-gray-700'>القسم</label>
                             <select name="department" id='Department' className="p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" onChange={handleChange} required>
@@ -112,12 +139,14 @@ function AddEmpolyee() {
                             </select>
                         </div>
 
-                        {/* الفرع الرئيسي للموظف - تم التعديل ليكون خيارات ثابتة تتوافق مع السيرفر */}
+                        {/* الفرع الرئيسي للموظف */}
                         <div className="flex flex-col gap-1">
                             <label htmlFor="Branch" className='text-sm font-semibold text-gray-700 font-bold text-blue-700'>فرع العمل الرئيسي</label>
                             <select name="branch" id='Branch' className="p-3 border border-blue-300 rounded-lg bg-blue-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all" onChange={handleChange} value={formData.branch} required>
-                                <option value="Cairo">فرع القاهرة</option>
-                                <option value="Mansoura">فرع المنصورة</option>
+                                <option value="">حدد الفرع المسموح...</option>
+                                <option value="Cairo">فرع القاهرة </option>
+                                <option value="Mansoura">فرع المنصورة </option>
+                                <option value="Both">كل الفروع</option>
                             </select>
                         </div>
 
@@ -139,7 +168,7 @@ function AddEmpolyee() {
                             <input type="date" name="dob" id='Date' className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" onChange={handleChange} required/>
                         </div>
 
-                        {/* النوع والحالة والوظيفة (كما هي) */}
+                        {/* النوع */}
                         <div className="flex flex-col gap-1">
                             <label htmlFor="Gender" className='text-sm font-semibold text-gray-700'>النوع</label>
                             <select name="gender" id='Gender' className="p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" onChange={handleChange} required>
@@ -148,6 +177,8 @@ function AddEmpolyee() {
                                 <option value="Female">أنثى</option>
                             </select>
                         </div>
+
+                        {/* الحالة الاجتماعية */}
                         <div className="flex flex-col gap-1">
                             <label htmlFor="Martial" className='text-sm font-semibold text-gray-700'>الحالة الاجتماعية</label>
                             <select name="maritalStatus" id='Martial' className="p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" onChange={handleChange} required>
@@ -156,6 +187,8 @@ function AddEmpolyee() {
                                 <option value="Married">متزوج</option>
                             </select>
                         </div>
+
+                        {/* الوظيفة */}
                         <div className="flex flex-col gap-1">
                             <label htmlFor="Designation" className='text-sm font-semibold text-gray-700'>الوظيفة</label>
                             <input type="text" name="designation" placeholder="تحديد الوظيفة" id='Designation' className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" onChange={handleChange} required/>
@@ -191,15 +224,15 @@ function AddEmpolyee() {
                                     value={formData.inventoryScope}
                                 >
                                     <option value="">حدد الفرع المسموح...</option>
-                                    <option value="Cairo">مخزن القاهرة فقط</option>
-                                    <option value="Mansoura">مخزن المنصورة فقط</option>
+                                    <option value="Cairo">مخزن القاهرة </option>
+                                    <option value="Mansoura">مخزن المنصورة </option>
                                     <option value="Both">كل الفروع</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    {/* باقي الحقول (الراتب، كلمة المرور، الدور، الصورة) كما هي */}
+                    {/* باقي الحقول */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="flex flex-col gap-1">
                             <label htmlFor="Salary" className='text-sm font-semibold text-gray-700'>الراتب الشهري</label>

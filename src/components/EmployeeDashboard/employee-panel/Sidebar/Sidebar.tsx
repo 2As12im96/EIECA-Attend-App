@@ -22,15 +22,17 @@ function Sidebar({ isOpen, toggleSidebar }: AdminSideBarProps) {
         lg:translate-x-0 
     `;
 
-    const branchTranslation: Record<string, string> = {
-        'Cairo': 'القاهرة',
-        'Mansoura': 'المنصورة',
-        'Both': 'كافة الفروع'
-    };
+    // 1. تحديد ما إذا كان للموظف حق الوصول للمخازن
+    const canAccessInventory = user?.inventoryPermissions?.accessType !== 'none';
 
-    // تبسيط الشرط لضمان الظهور إذا كان هناك أي نوع صلاحية
-    const canAccessInventory = user?.inventoryPermissions && 
-                               user.inventoryPermissions.accessType !== 'none';
+    // 2. دالة لجلب الاسم الذي سيظهر بجانب كلمة المخزن
+    const getInventoryTitle = () => {
+        if (user?.inventoryPermissions?.accessibleBranches === 'Both') {
+            return 'كافة المخازن';
+        }
+        // نستخدم locationName الذي يأتي من الـ AuthContext (مثلاً: القاهرة)
+        return user?.locationName ? `${user.locationName}` : 'المخزن';
+    };
 
     return (
         <div className={sidebarClasses}>
@@ -62,6 +64,7 @@ function Sidebar({ isOpen, toggleSidebar }: AdminSideBarProps) {
                         <li><FontAwesomeIcon icon={faMoneyBillWave} className="ml-2" /><span>المرتبات</span></li>
                     </NavLink>
 
+                    {/* رابط المخزن الديناميكي */}
                     {canAccessInventory && (
                         <NavLink 
                             to='/employee-dashboard/inventory' 
@@ -69,9 +72,7 @@ function Sidebar({ isOpen, toggleSidebar }: AdminSideBarProps) {
                         >
                             <li className="flex items-center gap-1">
                                 <FontAwesomeIcon icon={faWarehouse} className="ml-2 text-yellow-400" />
-                                <span>
-                                    المخزن ({branchTranslation[user.inventoryPermissions.accessibleBranches] || 'العام'})
-                                </span>
+                                <span>{getInventoryTitle()}</span>
                             </li>
                         </NavLink>
                     )}

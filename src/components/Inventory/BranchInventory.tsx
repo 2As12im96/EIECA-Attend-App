@@ -6,7 +6,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faExclamationTriangle, faTrash, faEdit, faBoxes, faImage, 
     faFilter, faMapMarkerAlt, faPlus, faChartPie, faPrint, 
-    faChevronDown, faFilePdf, faFileExcel
+    faChevronDown, faFilePdf, faFileExcel,
+    faExchangeAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/Context'; 
@@ -19,16 +20,19 @@ const BranchInventory = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showPrintOptions, setShowPrintOptions] = useState(false);
+    
+    // حالة جديدة للتحكم في فلتر الفروع (خاص بـ سارة صبري والأدمن)
+    const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
 
-    // تعديل المنطق ليكون أكثر مرونة في قراءة المسمى الوظيفي
+    // تحديد إذا كان للمستخدم صلاحية الإدارة (تعديل/حذف/إضافة)
     const canManage = useMemo(() => {
         if (user?.role === 'admin') return true;
-        const jobTitle = user?.designation || "";
-        return jobTitle.includes('مدير مخزن') || jobTitle.includes('مدير مخازن');
+        // الاعتماد على صلاحية canManage التي جلبناها في الـ Context
+        return user?.inventoryPermissions?.accessType === 'manage';
     }, [user]);
 
     useEffect(() => {
-        if (user?.locationName) {
+        if (user) {
             fetchInventory();
         }
     }, [user]);
@@ -42,11 +46,20 @@ const BranchInventory = () => {
             });
 
             if (res.data.success) {
-                const userBranch = user?.locationName?.trim();
+                const userPerms = user?.inventoryPermissions;
+                
+                // تصفية البيانات بناءً على الصلاحيات المسجلة
                 const branchData = res.data.report.filter((item: any) => {
-                    if (user?.role === 'admin') return true;
-                    return item.locationName?.trim() === userBranch;
+                    // 1. الأدمن أو من لديه صلاحية 'Both' يرى كل البيانات القادمة من السيرفر
+                    if (user?.role === 'admin' || userPerms?.accessibleBranches === 'Both') {
+                        return true;
+                    }
+                    
+                    // 2. الموظف العادي يرى فقط المنتجات التي تطابق فرعه (المخزن الخاص به)
+                    // نقارن اسم الفرع في المنتج مع اسم الفرع المخزن في الـ User Context
+                    return item.locationName?.trim() === user?.locationName?.trim();
                 });
+
                 setInventory(branchData);
             }
         } catch (err) {
@@ -56,8 +69,22 @@ const BranchInventory = () => {
         }
     };
 
+    // الفلترة النهائية (البحث + فلتر الفروع)
+    const filteredData = useMemo(() => {
+        return inventory.filter((item: any) => {
+            const matchesSearch = 
+                item.itemName?.toLowerCase().includes(search.toLowerCase()) ||
+                item.itemSku?.toLowerCase().includes(search.toLowerCase());
+            
+            // إذا كان المستخدم يرى الكل، نطبق فلتر الفرع المختار من الـ Select
+            const matchesBranch = selectedBranchFilter === 'all' || item.locationName === selectedBranchFilter;
+            
+            return matchesSearch && matchesBranch;
+        });
+    }, [inventory, search, selectedBranchFilter]);
+
     const handlePrint = (type: 'pdf' | 'excel') => {
-        const location = encodeURIComponent(user?.locationName || '');
+        const location = encodeURIComponent(selectedBranchFilter === 'all' ? (user?.locationName || '') : selectedBranchFilter);
         const url = `/employee-dashboard/inventory/report-print?location=${location}${type === 'excel' ? '&type=excel' : ''}`;
         navigate(url);
         setShowPrintOptions(false);
@@ -89,11 +116,6 @@ const BranchInventory = () => {
         }
     };
 
-    const filteredData = inventory.filter((item: any) =>
-        item.itemName?.toLowerCase().includes(search.toLowerCase()) ||
-        item.itemSku?.toLowerCase().includes(search.toLowerCase())
-    );
-
     const columns = [
         {
             name: 'الصورة',
@@ -112,6 +134,7 @@ const BranchInventory = () => {
                 <div className="py-2 text-right">
                     <div className="font-bold text-gray-800 leading-tight">{row.itemName}</div>
                     <div className="text-[10px] text-blue-500 font-mono mt-1 uppercase tracking-tighter">{row.itemSku}</div>
+                    <div className="text-[10px] text-gray-400 italic">{row.locationName}</div>
                 </div>
             )
         },
@@ -159,13 +182,16 @@ const BranchInventory = () => {
 
     return (
         <div className="p-6 bg-[#f8fafc] min-h-screen font-tajawal">
+            {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div className="flex items-center gap-4">
                     <div className="bg-emerald-600 p-3 rounded-2xl shadow-lg text-white">
                         <FontAwesomeIcon icon={faBoxes} className="text-3xl" />
                     </div>
                     <div className="text-right">
-                        <h2 className="text-3xl font-black text-gray-800 leading-tight">{user?.locationName || "الفرع"}</h2>
+                        <h2 className="text-3xl font-black text-gray-800 leading-tight">
+                            {user?.inventoryPermissions?.accessibleBranches === 'Both' ? "إدارة كافة المخازن" : `فرع: ${user?.locationName || "جاري التحميل..."}`}
+                        </h2>
                         <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                             <FontAwesomeIcon icon={faMapMarkerAlt} className="text-emerald-500" />
                             {user?.designation || "إدارة المخزون"}
@@ -175,9 +201,12 @@ const BranchInventory = () => {
 
                 {canManage && (
                     <div className="flex flex-wrap gap-2">
-                        <Link to="categories" className="bg-white border text-gray-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm">
-                            <FontAwesomeIcon icon={faChartPie} className="text-orange-500" /> الأقسام
+                        <Link to="transfer" className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-purple-700 shadow-lg transition">
+                            <FontAwesomeIcon icon={faExchangeAlt} /> تحويل مخزني
                         </Link>
+                        <Link to="categories" className="bg-white border text-gray-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm">
+                                <FontAwesomeIcon icon={faChartPie} className="text-orange-500" /> الأقسام
+                            </Link>
                         <Link to="add" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg transition">
                             <FontAwesomeIcon icon={faPlus} /> صنف جديد
                         </Link>
@@ -186,14 +215,14 @@ const BranchInventory = () => {
                                 onClick={() => setShowPrintOptions(!showPrintOptions)}
                                 className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-emerald-700 shadow-lg transition"
                             >
-                                <FontAwesomeIcon icon={faPrint} /> طباعة التقرير <FontAwesomeIcon icon={faChevronDown} className="text-[10px]" />
+                                <FontAwesomeIcon icon={faPrint} /> طباعة <FontAwesomeIcon icon={faChevronDown} className="text-[10px]" />
                             </button>
                             {showPrintOptions && (
-                                <div className="absolute left-0 top-full mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
-                                    <button onClick={() => handlePrint('pdf')} className="w-full text-right px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
+                                <div className="absolute left-0 top-full mt-2 w-40 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden text-right">
+                                    <button onClick={() => handlePrint('pdf')} className="w-full px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
                                         <FontAwesomeIcon icon={faFilePdf} className="text-red-500" /> تصدير PDF
                                     </button>
-                                    <button onClick={() => handlePrint('excel')} className="w-full text-right px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700 border-t">
+                                    <button onClick={() => handlePrint('excel')} className="w-full px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700 border-t">
                                         <FontAwesomeIcon icon={faFileExcel} className="text-green-600" /> تصدير Excel
                                     </button>
                                 </div>
@@ -203,11 +232,12 @@ const BranchInventory = () => {
                 )}
             </div>
 
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex justify-between items-center">
                     <div>
                         <p className="text-gray-400 text-xs font-bold mb-1 uppercase tracking-wider">إجمالي الأصناف</p>
-                        <h3 className="text-4xl font-black text-slate-800">{inventory.length}</h3>
+                        <h3 className="text-4xl font-black text-slate-800">{filteredData.length}</h3>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-2xl text-slate-400">
                         <FontAwesomeIcon icon={faBoxes} size="xl" />
@@ -216,7 +246,7 @@ const BranchInventory = () => {
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex justify-between items-center">
                     <div>
                         <p className="text-gray-400 text-xs font-bold mb-1 uppercase tracking-wider">نواقص المخزن</p>
-                        <h3 className="text-4xl font-black text-red-600">{inventory.filter(i => i.isLowStock).length}</h3>
+                        <h3 className="text-4xl font-black text-red-600">{filteredData.filter(i => i.isLowStock).length}</h3>
                     </div>
                     <div className="bg-red-50 p-4 rounded-2xl text-red-400">
                         <FontAwesomeIcon icon={faExclamationTriangle} size="xl" />
@@ -224,9 +254,11 @@ const BranchInventory = () => {
                 </div>
             </div>
 
+            {/* Table Section */}
             <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-50 bg-white flex flex-col md:flex-row justify-between gap-4">
-                    <div className="relative flex-1 max-w-xl">
+                <div className="p-6 border-b border-gray-50 bg-white flex flex-col md:flex-row justify-between items-center gap-4">
+                    {/* البحث */}
+                    <div className="relative flex-1 w-full max-w-xl">
                         <FontAwesomeIcon icon={faFilter} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300" />
                         <input
                             type="text"
@@ -235,6 +267,22 @@ const BranchInventory = () => {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+
+                    {/* فلتر الفروع - يظهر فقط لـ "سارة صبري" أو الأدمن */}
+                    {(user?.role === 'admin' || user?.inventoryPermissions?.accessibleBranches === 'Both') && (
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <span className="text-xs font-bold text-gray-400 whitespace-nowrap">الفرع:</span>
+                            <select 
+                                className="bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer w-full md:w-48"
+                                value={selectedBranchFilter}
+                                onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                            >
+                                <option value="all">كافة الفروع المتاحة</option>
+                                <option value="مخزن القاهرة">مخزن القاهرة</option>
+                                <option value="مخزن المنصورة">مخزن المنصورة</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <DataTable
@@ -243,7 +291,7 @@ const BranchInventory = () => {
                     pagination
                     progressPending={loading}
                     highlightOnHover
-                    noDataComponent={<div className="p-10 text-gray-400 italic font-bold">لا توجد أصناف في هذا الفرع</div>}
+                    noDataComponent={<div className="p-10 text-gray-400 italic font-bold">لا توجد أصناف تطابق البحث</div>}
                 />
             </div>
         </div>
